@@ -292,12 +292,13 @@
       (jio/make-parents *test-dir* "b/deps.edn")
       (testing "a relative local root canonicalizes relative to parent dep"
         (binding [dir/*the-dir* base]
-          (is (= ['ex/b {:local/root (.getPath (.getCanonicalFile (File. base "b")))}]
-                 (ext/canonicalize 'ex/b {:local/root "b"} {})))))
+          (let [canon-b (.getPath (.getCanonicalFile (File. base "b")))]
+            (is (= ['ex/b {:local/root canon-b :deps/root canon-b}]
+                   (ext/canonicalize 'ex/b {:local/root "b"} {}))))))
       (testing "an absolute local root canonicalizes to itself"
         (binding [dir/*the-dir* base]
           (let [abs-b (.getAbsolutePath (jio/file *test-dir* "b"))]
-            (is (= ['ex/b {:local/root abs-b}]
+            (is (= ['ex/b {:local/root abs-b :deps/root abs-b}]
                    (ext/canonicalize 'ex/b {:local/root abs-b} {})))))))))
 
 (deftest test-local-root-relative-to-project-deps
