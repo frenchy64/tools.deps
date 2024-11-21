@@ -3,7 +3,7 @@ Changelog
 
 *Also see [Tools and installer changelog](https://github.com/clojure/brew-install/blob/1.12.0/CHANGELOG.md)*
 
-* next
+* 0.21.1456
   * TDEPS-268 - Include all procurer types in find-all-versions
 * 0.21.1449 on Sep 5, 2024
   * Update to tools.deps.cli 0.11.72
