@@ -12,7 +12,7 @@
    org.apache.maven/maven-core {:mvn/version "3.8.8" :exclusions [com.google.guava/guava]}
    ;  com.google.guava/guava {:mvn/version "33.0.0-jre"} ;; update transitive dep due to CVE-2020-8908
    org.clojure/data.xml {:mvn/version "0.2.0-alpha9"}
-   org.clojure/tools.gitlibs {:mvn/version "2.5.197"}
+   org.clojure/tools.gitlibs {:mvn/version "2.6.206"}
    org.clojure/tools.cli {:mvn/version "1.1.230"}
    com.cognitect.aws/api {:mvn/version "0.8.692" :exclusions [org.eclipse.jetty/jetty-http org.eclipse.jetty/jetty-client org.eclipse.jetty/jetty-util]}  ;; override for CVEs
      org.eclipse.jetty/jetty-http {:mvn/version "9.4.53.v20231009"}
