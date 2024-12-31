@@ -5,6 +5,7 @@ Changelog
 
 * next
   * Update to tools.gitlibs 2.6.206
+  * Update other dep versions to latest
 * 0.21.1460 on Nov 21, 2024
   * Update to tools.deps.cli 0.11.78
 * 0.21.1456 on Nov 21, 2024
