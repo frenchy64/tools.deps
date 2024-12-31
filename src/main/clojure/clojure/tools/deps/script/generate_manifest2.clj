@@ -10,7 +10,6 @@
    clojure.tools.deps.script.generate-manifest2
   (:require [clojure.java.io :as jio]
             [clojure.tools.cli :as cli]
-            [clojure.tools.deps :as deps]
             [clojure.tools.deps.gen.pom :as pom]
             [clojure.tools.deps.script.parse :as parse]
             [clojure.tools.deps.script.make-classpath2 :as makecp]
@@ -36,9 +35,7 @@
     --config-data={...} - deps.edn as data
     --gen TYPE - manifest type to generate (currently only pom)
 
-  Options:
-    -Raliases - concated resolve-deps alias names, applied to the :deps
-    -Aaliases - concatenated generic alias names"
+  Options (see make-classpath2)"
   [& args]
   (let [{:keys [options errors]} (cli/parse-opts args opts)]
     (when (seq errors)
@@ -46,10 +43,7 @@
       (System/exit 1))
     (let [{:keys [gen config-user config-project]} options]
       (try
-        (let [basis-map (makecp/run-core (merge options
-                                         {:install-deps (deps/root-deps)
-                                          :user-deps (makecp/read-deps config-user)
-                                          :project-deps (makecp/read-deps config-project)}))
+        (let [basis-map (makecp/run-core options)
               mod-map (:basis basis-map)
               ;; treat all transitive deps as top-level deps
               updated-deps (reduce-kv (fn [m lib {:keys [dependents] :as coord}]
