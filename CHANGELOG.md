@@ -3,7 +3,7 @@ Changelog
 
 *Also see [Tools and installer changelog](https://github.com/clojure/brew-install/blob/1.12.0/CHANGELOG.md)*
 
-* next
+* 0.21.1467 on Dec 31, 2024
   * Refactored tool classpath calculation and align on create-basis
   * Update to tools.gitlibs 2.6.206
   * Update other dep versions to latest
