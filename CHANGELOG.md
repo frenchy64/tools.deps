@@ -3,7 +3,7 @@ Changelog
 
 *Also see [Tools and installer changelog](https://github.com/clojure/brew-install/blob/1.12.0/CHANGELOG.md)*
 
-* next on Jan 27, 2024
+* 0.21.1471 on Jan 27, 2024
   * Fix bug with -Srepro -Spom
 * 0.21.1467 on Dec 31, 2024
   * Refactored tool classpath calculation and align on create-basis
