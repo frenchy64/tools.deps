@@ -18,7 +18,7 @@
     [clojure.lang IExceptionInfo]))
 
 (def ^:private opts
-  [[nil "--config-user PATH" "User deps.edn location"]
+  [[nil "--config-user PATH" "User deps.edn location" :parse-fn makecp/blank-to-nil]
    [nil "--config-project PATH" "Project deps.edn location"]
    [nil "--config-data EDN" "Final deps.edn data to treat as the last deps.edn file" :parse-fn parse/parse-config]
    [nil "--gen TYPE" "manifest type to generate" :parse-fn keyword]
