@@ -24,7 +24,7 @@
     [java.io File InputStreamReader BufferedReader]
     [java.lang ProcessBuilder ProcessBuilder$Redirect]
     [java.util List]
-    [java.util.concurrent ExecutorService]))
+    [java.util.concurrent ConcurrentHashMap ExecutorService]))
 
 ;(set! *warn-on-reflection* true)
 
@@ -227,9 +227,8 @@
          :cut' (assoc cut [lib coord-id] coord-excl)
          :child-pred (fn [lib] (not (contains? coord-excl lib)))})
 
-      ;; if seeing same lib/ver again, narrow exclusions to intersection of prior and new.
-      ;; only include new unexcluded children (old excl set minus new excl set)
-      ;; as others were already enqueued when first added
+      ;; if seeing same lib/ver again, narrow exclusions to intersection of prior and new,
+      ;; must reconsider previously included children as prev parent may get omitted
       (= reason :same-version)
       (let [exclusions' (if (seq coord-excl) (assoc exclusions use-path coord-excl) exclusions)
             cut-coord (get cut [lib coord-id]) ;; previously cut from this lib, so were not enqueued
@@ -237,7 +236,7 @@
             enq-only (set/difference cut-coord new-cut)]
         {:exclusions' exclusions'
          :cut' (assoc cut [lib coord-id] new-cut)
-         :child-pred (set enq-only)})
+         :child-pred (fn [lib] (not (contains? new-cut lib)))})
 
       :else ;; otherwise, no change
       {:exclusions' exclusions, :cut' cut})))
@@ -394,44 +393,50 @@
 (defn- expand-deps
   "Dep tree expansion, returns version map"
   [deps default-deps override-deps config executor trace?]
-  (letfn [(err-handler [throwable]
-            (do
-              (concurrent/shutdown-on-error executor)
-              (throw ^Throwable throwable)))
-          (children-task [lib use-coord use-path child-pred]
-            {:pend-children
-             (let [{:deps/keys [manifest root]} use-coord]
-               (dir/with-dir (if root (jio/file root) dir/*the-dir*)
-                 (concurrent/submit-task executor
-                   #(try
-                      (canonicalize-deps (ext/coord-deps lib use-coord manifest config) config)
-                      (catch Throwable t t)))))
-             :ppath use-path
-             :child-pred child-pred})]
-    (loop [pendq nil ;; a resolved child-lookup thunk to look at first
-           q (into PersistentQueue/EMPTY (map vector deps)) ;; queue of nodes or child-lookups
-           version-map nil ;; track all seen versions of libs and which version is selected
-           exclusions nil ;; tracks exclusions marked in the tree
-           cut nil ;; tracks cuts made of child nodes based on exclusions
-           trace []] ;; trace expansion
-      (let [{:keys [path pendq q']} (next-path pendq q err-handler)]
-        (if path
-          (let [[lib coord] (peek path)
-                parents (pop path)
-                use-path (conj parents lib)
-                override-coord (get override-deps lib)
-                choose-coord (cond override-coord override-coord
-                                   coord coord
-                                   :else (get default-deps lib))
-                use-coord (merge choose-coord (ext/manifest-type lib choose-coord config))
-                coord-id (ext/dep-id lib use-coord config)
-                {:keys [include reason vmap]} (include-coord? version-map lib use-coord coord-id parents exclusions config)
-                ;_ (println "loop" lib coord-id "include=" include "reason=" reason)
-                {:keys [exclusions' cut' child-pred]} (update-excl lib use-coord coord-id use-path include reason exclusions cut)
-                new-q (if child-pred (conj q' (children-task lib use-coord use-path child-pred)) q')]
-            (recur pendq new-q vmap exclusions' cut'
-              (trace+ trace? trace parents lib coord use-coord coord-id override-coord include reason)))
-          (cond-> version-map trace? (with-meta {:trace {:log trace, :vmap version-map, :exclusions exclusions}})))))))
+  (let [memoized-deps (ConcurrentHashMap. 100)]
+    (letfn [(err-handler [throwable]
+              (do
+                (concurrent/shutdown-on-error executor)
+                (throw ^Throwable throwable)))
+            (children-task [lib use-coord use-path child-pred]
+              {:pend-children
+               (let [{:deps/keys [manifest root]} use-coord]
+                 (dir/with-dir (if root (jio/file root) dir/*the-dir*)
+                   (concurrent/submit-task executor
+                     #(try
+                        (let [k [lib use-coord]]
+                          (or
+                            (.get memoized-deps k)
+                            (let [child-deps (canonicalize-deps (ext/coord-deps lib use-coord manifest config) config)]
+                              (.putIfAbsent memoized-deps k child-deps)
+                              child-deps)))
+                        (catch Throwable t t)))))
+               :ppath use-path
+               :child-pred child-pred})]
+      (loop [pendq nil ;; a resolved child-lookup thunk to look at first
+             q (into PersistentQueue/EMPTY (map vector deps)) ;; queue of nodes or child-lookups
+             version-map nil ;; track all seen versions of libs and which version is selected
+             exclusions nil ;; tracks exclusions marked in the tree
+             cut nil ;; tracks cuts made of child nodes based on exclusions
+             trace []] ;; trace expansion
+        (let [{:keys [path pendq q']} (next-path pendq q err-handler)]
+          (if path
+            (let [[lib coord] (peek path)
+                  parents (pop path)
+                  use-path (conj parents lib)
+                  override-coord (get override-deps lib)
+                  choose-coord (cond override-coord override-coord
+                                     coord coord
+                                     :else (get default-deps lib))
+                  use-coord (merge choose-coord (ext/manifest-type lib choose-coord config))
+                  coord-id (ext/dep-id lib use-coord config)
+                  {:keys [include reason vmap]} (include-coord? version-map lib use-coord coord-id parents exclusions config)
+                  ; _ (println "loop" lib coord-id "include=" include "reason=" reason)
+                  {:keys [exclusions' cut' child-pred]} (update-excl lib use-coord coord-id use-path include reason exclusions cut)
+                  new-q (if child-pred (conj q' (children-task lib use-coord use-path child-pred)) q')]
+              (recur pendq new-q vmap exclusions' cut'
+                (trace+ trace? trace parents lib coord use-coord coord-id override-coord include reason)))
+            (cond-> version-map trace? (with-meta {:trace {:log trace, :vmap version-map, :exclusions exclusions}}))))))))
 
 (defn- cut-orphans
   "Remove any selected lib that does not have a selected parent path"
