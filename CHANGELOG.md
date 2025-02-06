@@ -3,6 +3,8 @@ Changelog
 
 *Also see [Tools and installer changelog](https://github.com/clojure/brew-install/blob/1.12.0/CHANGELOG.md)*
 
+* next
+  * Rollback modifying the dep expansion for same version children
 * 0.22.1476 on Feb 6, 2025
   * Modify dep expansion to reenqueue same version children in case previous parent was omitted
   * Memoize dep lookups during dep expansion to avoid unnecessary calls
