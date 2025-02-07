@@ -3,7 +3,7 @@ Changelog
 
 *Also see [Tools and installer changelog](https://github.com/clojure/brew-install/blob/1.12.0/CHANGELOG.md)*
 
-* next
+* 0.22.1492 on Feb 7, 2025
   * Update to latest tools.deps.cli
 * 0.22.1488 on Feb 7, 2025
   * Fix bug in prep-libs, missing prep alias
