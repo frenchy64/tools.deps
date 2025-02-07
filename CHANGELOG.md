@@ -3,6 +3,8 @@ Changelog
 
 *Also see [Tools and installer changelog](https://github.com/clojure/brew-install/blob/1.12.0/CHANGELOG.md)*
 
+* next
+  * Fix bug in prep-libs, missing prep alias
 * 0.22.1484 on Feb 7, 2025
   * During dep expansion, only consider lib to be omitted if all parent paths to root are omitted
 * 0.22.1480 on Feb 6, 2025
