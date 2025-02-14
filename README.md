@@ -1,4 +1,4 @@
-t5ools.deps
+tools.deps
 ========================================
 
 A functional API for transitive dependency graph expansion and the creation of classpaths.
