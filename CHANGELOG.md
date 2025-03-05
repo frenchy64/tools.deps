@@ -3,7 +3,7 @@ Changelog
 
 *Also see [Tools and installer changelog](https://github.com/clojure/brew-install/blob/1.12.0/CHANGELOG.md)*
 
-* next
+* 0.22.1497 on Mar 5, 2025
   * Add support for `clj -Sdeps file.edn`
 * 0.22.1492 on Feb 7, 2025
   * Update to latest tools.deps.cli
