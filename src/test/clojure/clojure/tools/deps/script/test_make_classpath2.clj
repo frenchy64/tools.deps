@@ -2,7 +2,9 @@
   (:require
     [clojure.test :refer [deftest is]]
     [clojure.tools.deps.script.make-classpath2 :as mc]
-    [clojure.java.io :as jio]))
+    [clojure.java.io :as jio])
+  (:import
+    [java.io File]))
 
 (defn submap?
   "Is m1 a subset of m2?"
@@ -245,6 +247,18 @@
     (is (not (contains? libs 'cheshire/cheshire)))
     (is (= (map #(.getCanonicalPath (jio/file %)) ["." "x" "y"])
           (map #(.getCanonicalPath (jio/file %)) paths)))))
+
+(deftest config-data
+  (let [{:keys [basis]} (mc/run-core {:config-project {:deps {'org.clojure/clojure {:mvn/version "1.12.0"}}}
+                                      :config-data {:deps {'org.clojure/data.json {:mvn/version "2.5.0"}}}})]
+    (is (contains? (:libs basis) 'org.clojure/data.json))))
+
+(deftest config-data-file
+  (let [temp-file (File/createTempFile "deps" ".edn")
+        _ (spit temp-file "{:deps {org.clojure/data.json {:mvn/version \"2.5.0\"}}}")
+        {:keys [basis]} (mc/run-core {:config-project {:deps {'org.clojure/clojure {:mvn/version "1.12.0"}}}
+                                      :config-data (.getAbsolutePath temp-file)})]
+    (is (contains? (:libs basis) 'org.clojure/data.json))))
 
 (comment
   (clojure.test/run-tests)

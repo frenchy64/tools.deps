@@ -10,6 +10,7 @@
   clojure.tools.deps.script.parse
   (:require
     [clojure.java.io :as jio]
+    [clojure.string :as s]
     [clojure.string :as str]
     [clojure.edn :as edn]
     [clojure.tools.deps :as deps])
@@ -39,4 +40,7 @@
   "Parses a string of edn into a deps map."
   [s]
   (#'deps/canonicalize-all-syms  ;; to be removed in the future
-    (edn/read-string {:default tagged-literal} s)))
+    (cond
+      (s/blank? s) (throw (ex-info (str "-Sdeps must be non-blank") {}))
+      (s/starts-with? (s/trim s) "{") (edn/read-string {:default tagged-literal} s)
+      :else s)))
