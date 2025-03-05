@@ -43,4 +43,6 @@
     (cond
       (s/blank? s) (throw (ex-info (str "-Sdeps must be non-blank") {}))
       (s/starts-with? (s/trim s) "{") (edn/read-string {:default tagged-literal} s)
-      :else s)))
+      :else (if (.exists (jio/file s))
+              s
+              (throw (ex-info (str "Extra deps file not found: " s) {}))))))
