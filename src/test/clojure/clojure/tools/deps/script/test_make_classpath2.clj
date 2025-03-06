@@ -245,7 +245,7 @@
         paths (filter #(get-in classpath [% :path-key]) classpath-roots)]
     ;; tool deps, not project deps
     (is (not (contains? libs 'cheshire/cheshire)))
-    (is (= (map #(.getCanonicalPath (jio/file %)) ["." "x" "y"])
+    (is (= (map #(.getCanonicalPath (jio/file %)) ["x" "y" "."])
           (map #(.getCanonicalPath (jio/file %)) paths)))))
 
 (deftest config-data

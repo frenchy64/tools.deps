@@ -851,7 +851,7 @@
           argmap-data (->> aliases
                         (remove nil?)
                         (map #(get alias-data %)))
-          argmap (apply merge-alias-maps (conj argmap-data args))
+          argmap (apply merge-alias-maps (concat argmap-data [args]))
 
           project-tooled-edn (tool project-edn argmap)
           merged-edn (merge-edns [root-edn user-edn project-tooled-edn extra-edn])
@@ -952,6 +952,9 @@
                       'software.amazon.awscdk/codebuild {:mvn/version "1.115.0"}}
                :mvn/repos (merge mvn/standard-repos {"datomic-cloud" {:url "s3://datomic-releases-1fc2183a/maven/releases"}})}
     nil)
+
+  (create-basis
+    {:user {} :project {} :aliases [:deps] :args {:ns-default 'foo}})
 
   (print-tree
     (resolve-deps {:deps {'org.clojure/clojure {:mvn/version "1.8.0"}
