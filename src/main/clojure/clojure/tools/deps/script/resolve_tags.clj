@@ -83,8 +83,8 @@
   Required:
     --deps-file deps.edn - deps.edn files in which to resolve git tags
 
-  Read deps.edn, find git coordinates with :tag but without :sha, resolve those
-  tags to shas, and over-write the deps.edn."
+  Read deps.edn, find git coordinates with :git/tag but without :git/sha,
+  resolve those tags to shas, and over-write the deps.edn."
   [& args]
   (let [{:keys [options]} (cli/parse-opts args opts)]
     (exec options)))
