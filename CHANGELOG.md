@@ -3,6 +3,8 @@ Changelog
 
 *Also see [Tools and installer changelog](https://github.com/clojure/brew-install/blob/1.12.0/CHANGELOG.md)*
 
+* 0.24.1519 on June 3, 2025
+  * Update root deps.edn to refer to 1.12.1
 * 0.23.1512 on Mar 5, 2025
   * Fix computation of tool argmap when both aliases and -T are used
 * 0.22.1507 on Mar 5, 2025
