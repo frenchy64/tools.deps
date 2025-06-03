@@ -3,7 +3,7 @@ Changelog
 
 *Also see [Tools and installer changelog](https://github.com/clojure/brew-install/blob/1.12.0/CHANGELOG.md)*
 
-* next
+* 0.24.1523 on June 3, 2025
   * Update to latest tools.deps.cli
 * 0.24.1519 on June 3, 2025
   * Update root deps.edn to refer to 1.12.1
