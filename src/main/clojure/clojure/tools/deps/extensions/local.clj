@@ -17,6 +17,7 @@
     [clojure.tools.deps.util.maven :as maven]
     [clojure.tools.deps.util.session :as session])
   (:import
+    [clojure.lang ExceptionInfo]
     [java.io File IOException]
     [java.net URL]
     [java.util.jar JarFile JarEntry]
@@ -24,12 +25,14 @@
     [org.apache.maven.model.building UrlModelSource]
     [org.apache.maven.model License]))
 
+(set! *warn-on-reflection* true)
+
 (defmethod ext/coord-type-keys :local
   [_type]
   #{:local/root})
 
 (defmethod ext/dep-id :local
-  [lib {:keys [local/root] :as _coord} _config]
+  [lib {:keys [deps/root] :as _coord} _config]
   {:lib lib
    :root root})
 
@@ -40,14 +43,25 @@
       f
       (throw (ex-info (format "Local lib %s not found: %s" lib root) {:lib lib :root root})))))
 
+;; copied from clojure.tools.deps.extensions.git/manifest-type
+(defn- combine-roots
+  [{local-root :local/root deps-root :deps/root :as _coord}]
+  (if deps-root
+    (let [root-file (jio/file deps-root)]
+      (if (.isAbsolute root-file) ;; should be only after coordinate resolution
+        (.getPath root-file)
+        (.getPath (jio/file local-root root-file))))
+    local-root))
+
 (defmethod ext/canonicalize :local
-  [lib {:keys [local/root] :as coord} _config]
-  (let [canonical-root (.getCanonicalPath (dir/canonicalize (jio/file root)))]
-    (ensure-file lib canonical-root) ;; throw if missing
-    [lib (assoc coord :local/root canonical-root)]))
+  [lib coord config]
+  (let [coord (update coord :local/root #(-> % jio/file dir/canonicalize .getCanonicalPath))
+        deps-root (or (:deps/root (ext/manifest-type lib coord config))
+                      (combine-roots coord))]
+    [lib (assoc coord :deps/root deps-root)]))
 
 (defmethod ext/lib-location :local
-  [_lib {:keys [local/root]} _config]
+  [_lib {:keys [deps/root] :as _coord} _config]
   {:base root
    :path ""
    :type :local})
@@ -57,13 +71,27 @@
   nil)
 
 (defmethod ext/manifest-type :local
-  [lib {:keys [local/root deps/manifest] :as _coord} _config]
-  (cond
-    manifest {:deps/manifest manifest :deps/root root}
-    (.isFile (ensure-file lib root)) {:deps/manifest :jar, :deps/root root}
-    :else (ext/detect-manifest root)))
+  [lib {local-root :local/root :keys [deps/manifest] :as coord} _config]
+  (let [combined-root (combine-roots coord)]
+    (cond
+      manifest
+      {:deps/manifest manifest :deps/root combined-root}
 
-(defmethod ext/coord-summary :local [lib {:keys [local/root]}]
+      (try (.isFile (ensure-file lib local-root))
+           (catch ExceptionInfo ex
+             (ensure-file lib combined-root) ;; report error for full path
+             (throw ex) ;; just in case the previous form didn't throw
+             ))
+      {:deps/manifest :jar, :deps/root local-root}
+
+      (.isFile (ensure-file lib combined-root))
+      {:deps/manifest :jar, :deps/root combined-root}
+
+      :else
+      (ext/detect-manifest combined-root))))
+
+(defmethod ext/coord-summary :local [lib {:keys [deps/root] :as _coord}]
+  ;; as this runs after coordinate resolution, we have :deps/root available
   (str lib " " root))
 
 (defmethod ext/license-info :local
@@ -85,7 +113,7 @@
     (catch IOException _t nil)))
 
 (defmethod ext/coord-deps :jar
-  [lib {:keys [local/root] :as _coord} _manifest config]
+  [lib {:keys [deps/root] :as _coord} _manifest config]
   (let [jar (JarFile. (ensure-file lib root))]
     (if-let [path (find-pom jar)]
       (let [url (URL. (str "jar:file:" root "!/" path))
@@ -97,11 +125,11 @@
 
 (defmethod ext/coord-paths :jar
   [_lib coord _manifest _config]
-  [(:local/root coord)])
+  [(:deps/root coord)])
 
 ;; 0 if x and y are the same jar or dir
 (defmethod ext/compare-versions [:local :local]
-  [lib {x-root :local/root :as x} {y-root :local/root :as y} _config]
+  [lib {x-root :deps/root :as x} {y-root :deps/root :as y} _config]
   (if (= x-root y-root)
     0
     (throw (ex-info (str "No known ancestor relationship between local versions for " lib ": " x-root " and " y-root)
@@ -112,7 +140,7 @@
   nil)
 
 (defmethod ext/license-info-mf :jar
-  [lib {:keys [local/root] :as _coord} _mf config]
+  [lib {:keys [deps/root] :as _coord} _mf config]
   (let [jar (JarFile. (ensure-file lib root))]
     (when-let [path (find-pom jar)]
       (let [url (URL. (str "jar:file:" root "!/" path))
