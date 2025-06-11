@@ -17,6 +17,8 @@
     [clojure.tools.deps.util.io :refer [printerrln]]
     [clojure.tools.gitlibs :as gitlibs]
     [clojure.tools.cli :as cli]
+    [clojure.string :as str]
+    [clojure.java.io :as io]
     [clojure.java.shell :as sh])
   (:import
     [clojure.lang IExceptionInfo]
@@ -27,37 +29,37 @@
 
 (defn exec
   [{:keys []}]
-  (try
-    (let [{:keys [exit out err]} (sh/sh "lein" "jar")]
-      (if-not (zero? exit)
-        (do (printerrln out)
-            (printerrln err)
-            (printerrln "Error prepping lein dep.")
-            1)
-        (let [jars (into [] (filter #(str/ends-with? (File/.getName %) ".jar"))
-                         (file-seq "target"))]
-          (case (count jars)
-            0 (do (printerrln "No jars found in target directory.")
-                  1)
-            1 (let [built-jar (first jars)
-                    prepped-jar ".clojure/tools.deps/prepped.jar"]
-                (io/make-parents prepped-jar)
-                (io/copy built-jar prepped-jar)
-                0)
-            (do (printerrln "Multiple jars found in target directory:" (mapv File/.getPath jars))
-                1)))))
-    (catch Throwable t
-      (printerrln "Error prepping lein dep." (.getMessage t))
-      (when-not (instance? IExceptionInfo t)
-        (.printStackTrace t))
-      1)))
+  (System/exit
+    (try
+      (let [{:keys [exit out err]} (sh/sh "lein" "jar")]
+        (if-not (zero? exit)
+          (do (printerrln out)
+              (printerrln err)
+              (printerrln "Error prepping lein dep.")
+              1)
+          (let [jars (into [] (filter #(str/ends-with? (File/.getName %) ".jar"))
+                           (file-seq "target"))]
+            (case (count jars)
+              0 (do (printerrln "No jars found in target directory.")
+                    1)
+              1 (let [built-jar (first jars)
+                      prepped-jar ".clojure/tools.deps/prepped.jar"]
+                  (io/make-parents prepped-jar)
+                  (io/copy built-jar prepped-jar)
+                  0)
+              (do (printerrln "Multiple jars found in target directory:" (mapv File/.getPath jars))
+                  1)))))
+      (catch Throwable t
+        (printerrln "Error prepping lein dep." (.getMessage t))
+        (when-not (instance? IExceptionInfo t)
+          (.printStackTrace t))
+        1))))
 
 (defn -main
   "Main entry point for prep-lein script."
   [& args]
   (let [{:keys [options]} (cli/parse-opts args opts)]
-    (System/exit (exec options))))
+    (exec options)))
 
 (comment
-  (exec {})
   )

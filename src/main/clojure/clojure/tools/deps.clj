@@ -907,6 +907,7 @@
 (load "/clojure/tools/deps/extensions/git")
 (load "/clojure/tools/deps/extensions/deps")
 (load "/clojure/tools/deps/extensions/pom")
+(load "/clojure/tools/deps/extensions/lein")
 
 (comment
   (require '[clojure.tools.deps.util.maven :as mvn])

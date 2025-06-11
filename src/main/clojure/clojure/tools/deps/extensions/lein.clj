@@ -19,6 +19,8 @@
   (:import
     [java.io File]))
 
+;;TODO version conflict resolution
+
 (set! *warn-on-reflection* true)
 
 #_
@@ -32,47 +34,40 @@
          (deps/root-deps)))))
 
 (defmethod ext/coord-deps :lein
-  [_lib {:keys [deps/root] :as _coord} _mf config]
-  ;;TODO
-  #_
-  (dir/with-dir (jio/file root)
-    (seq (:deps (deps-map config root)))))
+  [lib {:deps/keys [root] :as _coord} _mf config]
+  (ext/coord-deps lib {:local/root (.getPath (jio/file root ".clojure/tools.deps/prepped.jar"))} :jar config))
 
 (defmethod ext/coord-paths :lein
-  [_lib {:keys [deps/root] :as _coord} _mf config]
-  #_
-  (dir/with-dir (jio/file root)
-    (->> (:paths (deps-map config root))
-      (map #(dir/canonicalize (jio/file %)))
-      (map #(do
-              (when-not (dir/sub-path? %)
-                (throw (ex-info (str "Path " % " external to project " root))))
-              %))
-      (map #(.getCanonicalPath ^File %))
-      vec)))
+  [lib {:deps/keys [root] :as _coord} _mf config]
+  (ext/coord-paths lib {:local/root (.getPath (jio/file root ".clojure/tools.deps/prepped.jar"))} :jar config))
 
 (defmethod ext/manifest-file :lein
-  [_lib {:keys [deps/root] :as _coord} _mf _config]
+  [_lib {:deps/keys [root] :as _coord} _mf _config]
   (let [manifest (jio/file root "project.clj")]
     (when (.exists manifest)
       (.getAbsolutePath manifest))))
 
-(defmethod ext/coord-usage :lein [lib {:keys [deps/root] :as _coord} manifest-type config]
-  #_
-  (dir/with-dir (jio/file root)
-    (:tools/usage (deps-map config root))))
+(defmethod ext/coord-usage :lein
+  [_lib _coord _mf config]
+  ;; TBD
+  nil)
 
-(defmethod ext/prep-command :lein [lib {:keys [deps/root] :as _coord} manifest-type config]
+(defmethod ext/prep-command :lein
+  [_lib {:deps/keys [root] :as _coord} _mf _config]
   (dir/with-dir (jio/file root)
     {:prep/ensure ".clojure/tools.deps/prepped.jar"
-     :prep/fn 'clojure.tools.deps.script.prep-lein/exec}))
+     :prep/fn 'clojure.tools.deps.script.prep-lein/-main}))
 
 (comment
   (ext/coord-deps 'org.clojure/core.async {:deps/root "../core.async" :deps/manifest :pom}
-    :pom {:mvn/repos maven/standard-repos})
-  (ext/coord-deps 'reifyhealth/lein-git-down {:deps/root "../lein-git-down" :deps/manifest :pom}
+    :pom {:mvn/repos clojure.tools.deps.util.maven/standard-repos})
+  (ext/coord-deps 'reifyhealth/lein-git-down {:deps/root "../lein-git-down" :deps/manifest :lein}
+    :lein {:mvn/repos clojure.tools.deps.util.maven/standard-repos})
+  (ext/coord-paths 'reifyhealth/lein-git-down {:deps/root "../lein-git-down" :deps/manifest :lein}
+    :lein {:mvn/repos clojure.tools.deps.util.maven/standard-repos})
+  (ext/prep-command 'reifyhealth/lein-git-down {:deps/root "../lein-git-down" :deps/manifest :lein}
     :lein {:mvn/repos clojure.tools.deps.util.maven/standard-repos})
 
   (ext/coord-paths 'org.clojure/core.async {:deps/root "../core.async" :deps/manifest :pom}
-    :pom {:mvn/repos maven/standard-repos})
+    :pom {:mvn/repos clojure.tools.deps.util.maven/standard-repos})
   )
