@@ -22,6 +22,7 @@
 (defn- existing-file
   ^File [path]
   (-> (jio/file *test-dir* path)
+      (doto jio/make-parents)
       (doto .createNewFile (-> .isFile assert))))
 
 (deftest manifest-type
